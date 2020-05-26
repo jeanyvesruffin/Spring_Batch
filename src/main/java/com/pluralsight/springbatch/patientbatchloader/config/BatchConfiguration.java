@@ -31,7 +31,7 @@ public class BatchConfiguration implements BatchConfigurer {
 	private PlatformTransactionManager batchTransactionManager;
 	
 	@Autowired
-	@Qualifier(value="bqtchDataSource")
+	@Qualifier(value="batchDataSource")
 	private DataSource batchDataSource;
 
 	
@@ -49,8 +49,7 @@ public class BatchConfiguration implements BatchConfigurer {
 
 	@Override
 	public JobLauncher getJobLauncher() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		return this.jobLauncher;
 	}
 
 	@Override
