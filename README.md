@@ -387,7 +387,7 @@ public class BatchJobConfiguration {
 
 ## Configuration d'un step de Spring Batch
 
-![Creation d'un step](Documents.createStep.bmp)
+![Creation d'un step](Documents/createStep.bmp)
 
 1 . Creer attribut stepBuilderFactory membre de la classe StepBuilderFactory et un Bean sur la methode step() du fichier BatchJobConfiguration
 
