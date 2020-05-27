@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.Job;
@@ -13,16 +14,25 @@ import org.springframework.batch.core.JobParametersValidator;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.support.PassThroughItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.pluralsight.springbatch.patientbatchloader.domain.PatientRecord;
 
 @Configuration
 public class BatchJobConfiguration {
 
 	@Autowired
 	private JobBuilderFactory jobBuilderFactory;
+	@Autowired
+	private StepBuilderFactory stepBuilderFactory;
 
 	@Autowired
 	private ApplicationProperties applicationProperties;
@@ -60,4 +70,34 @@ public class BatchJobConfiguration {
 			}
 		};
 	}
+
+	@Bean
+    public Step step(ItemReader<PatientRecord> itemReader) throws Exception {
+        return this.stepBuilderFactory
+            .get(Constants.STEP_NAME)
+            .<PatientRecord, PatientRecord>chunk(2)
+            .reader(itemReader)
+            .processor(processor())
+            .writer(writer())
+            .build();
+    }
+	
+	@Bean
+    @StepScope
+    public PassThroughItemProcessor<PatientRecord> processor() {
+        return new PassThroughItemProcessor<>();
+    }
+	
+	 @Bean
+    @StepScope
+    public ItemWriter<PatientRecord> writer() {
+        return new ItemWriter<PatientRecord>() {
+            @Override
+            public void write(List<? extends PatientRecord> items) throws Exception {
+                for (PatientRecord patientRecord : items) {
+                    System.err.println("Writing item: " + patientRecord.toString());
+                }
+            }
+        };
+    }
 }

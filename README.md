@@ -11,9 +11,9 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 
 ## Configurer l'application Spring batch
 
-1 . Ajouter une classe de configuration à votre projet avec les imports nécessaire, avec la declaration de 3 attributs membres de classes JobRepository, JobExplorer et JobLauncher.
+1 . Ajouter une classe de configuration à votre projet avec les imports nécessaires, ainsi que la declaration de 3 attributs membres à la classe JobRepository, JobExplorer et JobLauncher.
 
-	```java
+	```ruby
 	import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
 	import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 	import org.springframework.batch.core.explore.JobExplorer;
@@ -39,7 +39,7 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 
 2 . Cabler deux attributs membres de la classe PlatformTransactionManager et DataSource
 
-	```java
+	```ruby
 	@Autowired
 	@Qualifier(value="batchTransactionManager")
 	private PlatformTransactionManager batchTransactionManager;
@@ -50,7 +50,7 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 
 3 . Remplir le contrat d'interface de BatchConfigurer.
 
-	```java
+	```ruby
 	@Override
 	public PlatformTransactionManager getTransactionManager() throws Exception {
 		return this.batchTransactionManager;
@@ -63,7 +63,7 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 	
 4 . Ajouter la methode de creation d'une execution de job (launcher + repository + afterPropertiesSet)
 
-	```java
+	```ruby
 	protected JobLauncher createJobLauncher() throws Exception {
 		SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
 		jobLauncher.setJobRepository(jobRepository);
@@ -103,7 +103,7 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 			
 6 . On ajoute dans le fichier ApplicationProperties les propriétés spécifiques à l'application
 
-	```java
+	```ruby
 	@ConfigurationProperties(prefix = "application", ignoreUnknownFields = false)
 	public class ApplicationProperties {
 		private final Batch batch = new Batch();
@@ -120,7 +120,7 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 			}
 		}	
 	}
-	```java
+	```
 		
 ## Ajout de l'objet base de donnée à Spring Batch
 
@@ -325,14 +325,12 @@ Méfiance il y a un point qui traine dans le chemin
 	
 3 . Creer un bean sur la methode de validation dans la classe BatchJobConfiguration (nous validerons ici que le fichier est present et que le fichier de destination exist.
 
-```class
+```ruby
 package com.pluralsight.springbatch.patientbatchloader.config;
-
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
@@ -348,25 +346,20 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class BatchJobConfiguration {
-
 	@Autowired
 	private JobBuilderFactory jobBuilderFactory;
-
 	@Autowired
 	private ApplicationProperties applicationProperties;
-
 	@Bean
 	JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
 		JobRegistryBeanPostProcessor postProcessor = new JobRegistryBeanPostProcessor();
 		postProcessor.setJobRegistry(jobRegistry);
 		return postProcessor;
 	}
-
 	@Bean
 	Job job(Step step) throws Exception {
 		return this.jobBuilderFactory.get(Constants.JOB_NAME).validator(validator()).start(step).build();
 	}
-
 	@Bean
 	public JobParametersValidator validator() {
 		return new JobParametersValidator() {
@@ -391,5 +384,17 @@ public class BatchJobConfiguration {
 }
 
 ```
+
+## Configuration d'un step de Spring Batch
+
+![Creation d'un step](Documents.createStep.bmp)
+
+1 . Creer attribut stepBuilderFactory membre de la classe StepBuilderFactory et un Bean sur la methode step() du fichier BatchJobConfiguration
+
+	```ruby
+	@Autowired
+	private StepBuilderFactory stepBuilderFactory;
+	
+
 
 
