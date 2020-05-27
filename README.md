@@ -1,5 +1,14 @@
 # Spring_batch
 
+**Ne jamais oublier** que pendant l'execution d'un projet Spring nous pouvons controler son etats de santé avec localhost:8080/actuator.
+
+Avec SOAPUI par exemple.
+
+Voir:
+
+https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html
+
+
 ## Ajouter les dependences spring batch
 
 Dans le fichier build.gradle ajouter les lignes suivantes:
