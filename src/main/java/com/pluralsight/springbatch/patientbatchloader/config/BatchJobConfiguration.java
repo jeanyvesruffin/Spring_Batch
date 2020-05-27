@@ -63,7 +63,7 @@ public class BatchJobConfiguration {
 					}
 				} catch (Exception e) {
 					throw new JobParametersInvalidException(
-							"le paramètre chemin d'accès + patient-batch-loader.filename doit être un emplacement de fichier valide");
+							"le parametre chemin d'acces + patient-batch-loader.filename doit etre un emplacement de fichier valide");
 				}
 			}
 		};

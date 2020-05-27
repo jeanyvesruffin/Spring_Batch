@@ -461,6 +461,20 @@ public class JobResource {
 
 
 
+## Bug fix
 
+Erreur lors du test() me retourne "Le parametre de patient-batch-loader.fileName est requis"
+
+Issu de:
+
+```ruby
+if (StringUtils.isBlank(fileName)) {
+					throw new JobParametersInvalidException("Le parametre de patient-batch-loader.fileName est requis");
+				}
+```
+
+Resolution:
+
+Probleme sur l'indentation du fichier application.yml
 
 
