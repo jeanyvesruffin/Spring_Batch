@@ -13,22 +13,22 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 
 1 . Ajouter une classe de configuration à votre projet avec les imports nécessaires, ainsi que la declaration de 3 attributs membres à la classe JobRepository, JobExplorer et JobLauncher.
 
-	```ruby
-	import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
-	import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-	import org.springframework.batch.core.explore.JobExplorer;
-	import org.springframework.batch.core.launch.JobLauncher;
-	import org.springframework.batch.core.repository.JobRepository;
-	import org.springframework.stereotype.Component;
-	import org.springframework.transaction.PlatformTransactionManager;
-	@Component
-	@EnableBatchProcessing
-	public class BatchConfiguration implements BatchConfigurer {
-		private JobRepository jobRepository;
-		private JobExplorer jobExplorer;
-		private JobLauncher jobLauncher;
-	}
-	```
+```ruby
+import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.batch.core.explore.JobExplorer;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+@Component
+@EnableBatchProcessing
+public class BatchConfiguration implements BatchConfigurer {
+	private JobRepository jobRepository;
+	private JobExplorer jobExplorer;
+	private JobLauncher jobLauncher;
+}
+```
 
 * JobRepository: Conserve les métadonnées sur le job par lots
 
