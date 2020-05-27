@@ -391,10 +391,76 @@ public class BatchJobConfiguration {
 
 1 . Creer attribut stepBuilderFactory membre de la classe StepBuilderFactory et un Bean sur la methode step() du fichier BatchJobConfiguration
 
-	```ruby
+```ruby
+@Autowired
+private StepBuilderFactory stepBuilderFactory;
+@Bean
+public Step step(ItemReader<PatientRecord> itemReader) throws Exception {
+    return this.stepBuilderFactory
+        .get(Constants.STEP_NAME)
+        .<PatientRecord, PatientRecord>chunk(2)
+        .reader(itemReader)
+        .processor(processor())
+        .writer(writer())
+        .build();
+}
+```
+
+## Creation de test
+
+Nous allons tester que le job est disponible dans le context Spring avec le bon nom.
+
+1 . Creation d'une classe test BatchJobConfigurationTest
+
+```ruby
+@RunWith(SpringRunner.class)
+@SpringBootTest(classes = PatientBatchLoaderApp.class)
+@ActiveProfiles("dev")
+public class BatchJobConfigurationTest {
 	@Autowired
-	private StepBuilderFactory stepBuilderFactory;
-	
+	private Job job;
+	@Test
+	public void test() {
+		assertNotNull(job);
+		assertEquals(Constants.JOB_NAME, job.getName());
+	}
+}
+```
+
+## Launching a job, Spring batch job execution
+
+1 . Creer une class JobResource dans le package web.rest
+
+```ruby
+@RestController
+@RequestMapping("/job")
+public class JobResource {
+
+	private final JobLauncher jobLauncher;
+	private final Job job;
+
+	public JobResource(JobLauncher jobLauncher, Job job) {
+		super();
+		this.jobLauncher = jobLauncher;
+		this.job = job;
+	}
+
+	@GetMapping("/{fileName:.+}")
+	public ResponseEntity<String> runJob(@PathVariable String fileName) {
+		Map<String, JobParameter> parameterMap = new HashMap<>();
+		parameterMap.put(Constants.JOB_PARAM_FILE_NAME, new JobParameter(fileName));
+		try {
+			jobLauncher.run(job, new JobParameters(parameterMap));
+		} catch (Exception e) {
+			return new ResponseEntity<String>("Failure" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<String>("Success", HttpStatus.OK);
+	}
+}
+```
+
+
+
 
 
 

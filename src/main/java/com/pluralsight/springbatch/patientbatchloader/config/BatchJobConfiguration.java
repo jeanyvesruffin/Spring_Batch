@@ -4,7 +4,6 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.Job;
@@ -12,19 +11,17 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.JobParametersValidator;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
-import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.support.PassThroughItemProcessor;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import com.pluralsight.springbatch.patientbatchloader.domain.PatientRecord;
 
 @Configuration
 public class BatchJobConfiguration {
@@ -38,14 +35,14 @@ public class BatchJobConfiguration {
 	private ApplicationProperties applicationProperties;
 
 	@Bean
-	JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
+	JobRegistryBeanPostProcessor jobRegistryBea63nPostProcessor(JobRegistry jobRegistry) {
 		JobRegistryBeanPostProcessor postProcessor = new JobRegistryBeanPostProcessor();
 		postProcessor.setJobRegistry(jobRegistry);
 		return postProcessor;
 	}
 
 	@Bean
-	Job job(Step step) throws Exception {
+	public Job job(Step step) throws Exception {
 		return this.jobBuilderFactory.get(Constants.JOB_NAME).validator(validator()).start(step).build();
 	}
 
@@ -55,6 +52,7 @@ public class BatchJobConfiguration {
 			@Override
 			public void validate(JobParameters parameters) throws JobParametersInvalidException {
 				String fileName = parameters.getString(Constants.JOB_PARAM_FILE_NAME);
+				// System.out.println("filename :" + fileName);
 				if (StringUtils.isBlank(fileName)) {
 					throw new JobParametersInvalidException("Le parametre de patient-batch-loader.fileName est requis");
 				}
@@ -71,6 +69,23 @@ public class BatchJobConfiguration {
 		};
 	}
 
+	@Bean
+	public Step step() throws Exception {
+		return this.stepBuilderFactory
+				.get(Constants.STEP_NAME)
+				.tasklet(new Tasklet() {
+					@Override
+					public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
+							throws Exception {
+						System.err.println("Hello World!!");
+						return RepeatStatus.FINISHED;
+					}
+					
+				})
+				.build();		
+	}
+	
+	/*
 	@Bean
     public Step step(ItemReader<PatientRecord> itemReader) throws Exception {
         return this.stepBuilderFactory
@@ -100,4 +115,5 @@ public class BatchJobConfiguration {
             }
         };
     }
+    */
 }
