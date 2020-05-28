@@ -23,13 +23,7 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 1 . Ajouter une classe de configuration à votre projet avec les imports nécessaires, ainsi que la declaration de 3 attributs membres à la classe JobRepository, JobExplorer et JobLauncher.
 
 ```ruby
-import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.PlatformTransactionManager;
+
 @Component
 @EnableBatchProcessing
 public class BatchConfiguration implements BatchConfigurer {
@@ -53,21 +47,30 @@ public class BatchConfiguration implements BatchConfigurer {
 @Qualifier(value="batchTransactionManager")
 private PlatformTransactionManager batchTransactionManager;
 @Autowired
-@Qualifier(value="bqtchDataSource")
+@Qualifier(value="batchDataSource")
 private DataSource batchDataSource;
 ```
 
 3 . Remplir le contrat d'interface de BatchConfigurer.
 
 ```ruby
-@Override
-public PlatformTransactionManager getTransactionManager() throws Exception {
-	return this.batchTransactionManager;
-}
-@Override
-public JobExplorer getJobExplorer() throws Exception {
-	return this.jobExplorer;
-}
+...
+	@Override
+	public JobRepository getJobRepository() throws Exception {
+		return this.jobRepository;
+	}
+	@Override
+	public JobExplorer getJobExplorer() throws Exception {
+		return this.jobExplorer;
+	}
+	@Override
+	public JobLauncher getJobLauncher() throws Exception {
+		return this.jobLauncher;
+	}
+	@Override
+	public PlatformTransactionManager getTransactionManager() throws Exception {
+		return this.batchTransactionManager;
+	}
 ```
 	
 4 . Ajouter la methode de creation d'une execution de job (launcher + repository + afterPropertiesSet)
@@ -468,6 +471,230 @@ public class JobResource {
 }
 ```
 
+Tester le lancement du job en executant l'application puis à l'aide de SoapUI envoyer une requete à l'adresse:
+
+http://localhost:8080/job/test-unit-testing.csv
+
+Le resultat se trouvera dans la console:
+
+	Hello World!!
+
+## Consommation d'un fichier d'entrée (consuming an input file)
+
+Rappel serialisation/deserialisation
+
+http://blog.paumard.org/cours/java/chap10-entrees-sorties-serialization.html
+
+Notre fichier d'entrée sera un fichier .csv celui-ci devra etre avoir la structure suivante:
+
+* Avoir un delimiteur de champs, ici : ",".
+* Avoir une entete, ici le nom des champs de colonne.
+* Avoir les champs/ valeur qui seraient requis et compris par le provider et consumer
+
+
+Exemple entête:
+
+
+```csv
+source_id,first_name,middle_initial,last_name,email_address,phone_number,street,city,state,zip,birthdate,action,ssn
+```
+Suivi des datas attendues par le providers et consumer:
+
+```csv
+72739d22-3c12-539b-b3c2-13d9d4224d40,Hettie,P,Schmidt,rodo@uge.li,(805) 384-3727,Hutij Terrace,Kahgepu,ID,40239,6/14/1961,I,071-81-2500
+```
+
+1 . Creation de la classe PatientRecord qui sera serialisable (implements Serializable) avec des attributs representant l'entete du fichier csv que l'on typera en String. Puis génération getters/setters et constructeurs sans et avec constructeur + Override toString().
+
+
+Exemple:
+
+```java
+public class PatientRecord  implements Serializable{
+	private static final long serialVersionUID = -6177158019126398888L;
+	
+	private String sourceId;
+	private String firstName;
+	...
+	
+	public PatientRecord(String sourceId, String firstName, ...) {
+		super();
+		this.sourceId = sourceId;
+		this.firstName = firstName;
+		...
+	}
+
+	public PatientRecord() {
+		super();
+	}
+
+...
+
+	public String getSource_id() {
+		return sourceId;
+	}
+
+	public void setSource_id(String sourceId) {
+		this.sourceId = sourceId;
+	}
+	...
+	@Override
+	public String toString() {
+		return "PatientRecord{" + "sourceId='" + sourceId + '\'' + ", firstName='" + firstName + '\''
+				+ ...
+	}
+}
+
+```
+
+2 . Mise à jour de notre step pour regroupement
+
+Lors de l'execution de notre job notre step (BatchJobConfiguration.java) nous retourne uniquement "Hello world" a l'aide de talkLet.
+
+Nous allons remplacer le talklet par un traitement par lot (chunk-oriented processing), utilisant un ItemReader en parametre du step
+
+Les implémentations ItemReader doivent être avec état et seront appelées plusieurs fois pour chaque lot, chaque appel read() renvoyant une valeur différente et retournera finalement null lorsque toutes les données d'entrée seront épuisées.
+Les implémentations n'ont pas besoin d'être thread-safe et les clients ItemReader doivent savoir que c'est le cas.
+
+
+Remplacer la methode step par :
+
+```ruby
+@Bean
+public Step step(ItemReader<PatientRecord> itemReader) throws Exception {
+	return this.stepBuilderFactory
+			.get(Constants.STEP_NAME)
+			.<PatientRecord, PatientRecord>chunk(2)
+			.reader(itemReader)
+			.processor(processor())
+			.writer(writer)
+			.build();		
+}
+```
+
+3 . Implementer générateur de lecteur d'élément de fichier plat (FlatFile ItemReader Builder) nous allons :
+
+* Ouvrir le fichier
+* Sauter la  premier ligne
+* lire chaque ligne contenu
+* cartogrraphier chaque data pour la classe PatientRecord
+
+La classe Spring FlatFileItemReader realise cela pour nous à l'aide de LinMapper.
+
+Exemple FlatFileItemReader :
+
+```ruby
+@Bean
+@StepScope
+public FlatFileItemReader<PatientRecord> reader(@Value("#{jobParameters['" + Constants.JOB_PARAM_FILE_NAME + "']}") String fileName) {
+	return new FlatFileItemReaderBuilder<PatientRecord>()
+			.name(Constants.ITEM_READER_NAME)
+			.resource(new PathResource(Paths.get(applicationProperties.getBatch().getInputPath() + File.separator + fileName)))
+			.linesToSkip(1).lineMapper(lineMapper()).build();
+}
+```
+
+	
+Exemple de LineMapper
+
+```ruby
+@Bean
+public LineMapper<PatientRecord> lineMapper() {
+	DefaultLineMapper<PatientRecord> mapper = new DefaultLineMapper<>();
+	mapper.setFieldSetMapper((fieldSet)->new PatientRecord(
+			fieldSet.readString(0), fieldSet.readString(1),
+			fieldSet.readString(2), fieldSet.readString(3),
+			fieldSet.readString(4), fieldSet.readString(5),
+			fieldSet.readString(6), fieldSet.readString(7),
+			fieldSet.readString(8), fieldSet.readString(9),
+			fieldSet.readString(10), fieldSet.readString(11),
+			fieldSet.readString(12)));
+	mapper.setLineTokenizer(new DelimitedLineTokenizer());
+	return mapper;
+}
+```
+
+4 . Creation des methodes de processor() et writer() issu de Spring ItemWriter et de Spring PassThroughItemProcessor
+
+PassThroughItemProcessor:
+
+transmet simplement son argument à l'appelant. Utile par défaut lorsque le lecteur et le rédacteur d'un processus métier traitent des éléments du même type et qu'aucune transformation n'est requise
+
+Dans BatchJobConfiguration:
+
+```ruby
+@Bean
+	@StepScope
+	public PassThroughItemProcessor<PatientRecord> processor(){
+		return new PassThroughItemProcessor<>();
+	}
+@Bean
+@StepScope
+public ItemWriter<PatientRecord> writer(){
+	return new ItemWriter<PatientRecord>() {
+		@Override
+		public void write(List<? extends PatientRecord> items) throws Exception {
+			for (PatientRecord patientRecord : items) {
+				System.err.println("Ecriture item : " + patientRecord.toString());
+			}
+		}
+	};
+}
+```
+
+5 . Test
+
+```ruby
+	@Autowired
+	private FlatFileItemReader<PatientRecord> reader;
+	private JobParameters jobParameters;
+	@Before
+	public void setUpt() {
+		Map<String, JobParameter> params = new HashMap<>();
+		params.put(Constants.JOB_PARAM_FILE_NAME, new JobParameter("test-unit-testing.csv"));
+		jobParameters = new JobParameters(params);
+	}
+
+    @Test
+    public void testReader() throws Exception {
+        StepExecution stepExecution = MetaDataInstanceFactory.createStepExecution(jobParameters);
+        int count = 0;
+        try {
+            count = StepScopeTestUtils.doInStepScope(stepExecution, () -> {
+                int numPatients = 0;
+                PatientRecord patient;
+                try {
+                    reader.open(stepExecution.getExecutionContext());
+                    while ((patient = reader.read()) != null) {
+                        assertNotNull(patient);
+                        assertEquals("72739d22-3c12-539b-b3c2-13d9d4224d40", patient.getSourceId());
+                        assertEquals("Hettie", patient.getFirstName());
+                        assertEquals("P", patient.getMiddleInitial());
+                        assertEquals("Schmidt", patient.getLastName());
+                        assertEquals("rodo@uge.li", patient.getEmailAddress());
+                        assertEquals("(805) 384-3727", patient.getPhoneNumber());
+                        assertEquals("Hutij Terrace", patient.getStreet());
+                        assertEquals("Kahgepu", patient.getCity());
+                        assertEquals("ID", patient.getState());
+                        assertEquals("40239", patient.getZip());
+                        assertEquals("6/14/1961", patient.getBirthDate());
+                        assertEquals("I", patient.getAction());
+                        assertEquals("071-81-2500", patient.getSsn());
+                        numPatients++;
+                    }
+                } finally {
+                    try { reader.close(); } catch (Exception e) { fail(e.toString()); }
+                }
+                return numPatients;
+            });
+        } catch (Exception e) {
+            fail(e.toString());
+        }
+        assertEquals(1, count);
+    }
+}
+```
+
 
 
 ## Bug fix
@@ -485,5 +712,7 @@ if (StringUtils.isBlank(fileName)) {
 Resolution:
 
 Probleme sur l'indentation du fichier application.yml
+
+Controle structure yaml avec https://github.com/adrienverge/yamllint
 
 
