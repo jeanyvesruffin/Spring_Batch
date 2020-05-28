@@ -697,7 +697,7 @@ public ItemWriter<PatientRecord> writer(){
 
 Executer l'executio ndu test pour le valider.
 
-## Traitement des data d'entrée (Processing Input Data)
+## Traitement des datas d'entrées (Processing Input Data)
 
 1 . Creation de la class PatientEntity
 
@@ -806,9 +806,171 @@ public void testProcessor() throws Exception {
 ...
 ```
 
-Et on test.
+On test, puis on excecute.
 
+## Sortir les resultats du traitement (outputting the results)
 
+1 . Nous allons pour cela recreer un dernier fichier de log represntatif de la structure de base de donnée de l'objet patient
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <property name="now" value="now()" dbms="h2"/>
+    <property name="now" value="GETDATE()" dbms="mssql"/>
+
+    <changeSet id="01022018000001" author="system">
+        <createTable tableName="patient">
+            <column name="patient_id" type="bigint" autoIncrement="${autoIncrement}">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="source_id" type="VARCHAR(100)">
+                <constraints nullable="false" />
+            </column>
+            <column name="first_name" type="VARCHAR(100)">
+                <constraints nullable="false" />
+            </column>
+            <column name="middle_initial" type="VARCHAR(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="last_name" type="VARCHAR(100)">
+                <constraints nullable="false" />
+            </column>
+            <column name="email_address" type="VARCHAR(200)">
+                <constraints nullable="false" />
+            </column>
+            <column name="phone_number" type="VARCHAR(50)">
+                <constraints nullable="false" />
+            </column>
+            <column name="street" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="city" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="state" type="VARCHAR(100)">
+                <constraints nullable="false" />
+            </column>
+            <column name="zip_code" type="VARCHAR(20)">
+                <constraints nullable="false" />
+            </column>
+            <column name="birth_date" type="date">
+                <constraints nullable="false" />
+            </column>
+            <column name="social_security_number" type="VARCHAR(20)">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
+```
+
+2 . Puis on l'ajoute à notre fichier master.xml
+
+```xml
+<include file="config/liquibase/changelog/01022018000000_create_patient_objects.xml" relativeToChangelogFile="false"/>
+```
+
+3 . Nous implementons a JPA Item Writer
+
+Dans la classe BatchJobConfiguration remplacer la methode writer():
+
+```ruby
+@Autowired
+@Qualifier(value="batchEntityManagerFactory")
+private EntityManagerFactory batchEntityManagerFactory;
+...	
+@Bean
+@StepScope
+public JpaItemWriter<PatientEntity> writer() {
+	JpaItemWriter<PatientEntity> writer = new JpaItemWriter<>();
+	writer.setEntityManagerFactory(batchEntityManagerFactory);
+	return writer;
+}
+```
+
+Et remplacer la methode step par:
+
+```ruby
+@Bean
+public Step step(ItemReader<PatientRecord> itemReader, Function<PatientRecord, PatientEntity> processor, JpaItemWriter<PatientEntity> writer) throws Exception {
+	return this.stepBuilderFactory.
+			get(Constants.STEP_NAME).
+			<PatientRecord, PatientEntity>chunk(2)
+			.reader(itemReader)
+			.processor(processor)
+			.writer(writer())
+			.build();
+}
+```
+	
+4 . Creation du test
+
+Pour savoir si l'ecriture c'est bien effectué nous allons commencer par creer une interface qui extends JpaRepository, puis une classe implementant celle-ci dans lequel sera ecrit les resultats. (package repository).
+
+Interface PatientRepository:
+
+```ruby
+@Repository
+public interface PatientRepository extends JpaRepository<PatientEntity, Long>{	
+}
+```
+
+5 . On cable PatientRepository et JpaItemWriter dans la classe test
+
+```ruby
+@Autowired
+private JpaItemWriter<PatientEntity> writer;
+
+@Autowired
+private PatientRepository patientRepository;
+```
+
+6 . Ajouter la methode de test
+
+```ruby
+@Test
+public void testWriter() throws Exception {
+	PatientEntity entity = new PatientEntity("72739d22-3c12-539b-b3c2-13d9d4224d40",
+            "Hettie",
+            "P",
+            "Schmidt",
+            "rodo@uge.li",
+            "(805) 384-3727",
+            "Hutij Terrace",
+            "Kahgepu",
+            "ID",
+            "40239",
+            LocalDate.of(1961, 6, 14),
+            "071-81-2500");
+        StepExecution execution = MetaDataInstanceFactory.createStepExecution();
+        StepScopeTestUtils.doInStepScope(execution, () -> {
+            writer.write(Arrays.asList(entity));
+            return null;
+        });
+        assertTrue(patientRepository.findAll().size() > 0);
+}
+```
+
+7 . Ajouter les annotation suivante sur l'entete de la class test afin de ne pas avoir d'erreur, car nous essayons d'executer une ecriture à l'exterieur de la transaction
+
+```ruby
+@TestExecutionListeners({ DependencyInjectionTestExecutionListener.class, StepScopeTestExecutionListener.class, TransactionalTestExecutionListener.class})
+@Transactional
+```
+
+Et on test
+
+8 . Verification de l'execution du job
+
+Apres son execution la table patient est remplis.
+
+ 
 
 ## Bug fix
 

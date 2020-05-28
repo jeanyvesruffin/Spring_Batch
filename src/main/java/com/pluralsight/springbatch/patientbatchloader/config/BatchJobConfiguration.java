@@ -1,6 +1,7 @@
 package com.pluralsight.springbatch.patientbatchloader.config;
 
 import java.io.File;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -8,6 +9,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Function;
+
+import javax.persistence.EntityManagerFactory;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.Job;
@@ -22,12 +25,14 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +51,11 @@ public class BatchJobConfiguration {
 
 	@Autowired
 	private ApplicationProperties applicationProperties;
+	
+	@Autowired
+	@Qualifier(value="batchEntityManagerFactory")
+	private EntityManagerFactory batchEntityManagerFactory;
+	
 
 	@Bean
 	JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
@@ -54,6 +64,28 @@ public class BatchJobConfiguration {
 		return postProcessor;
 	}
 
+	
+	@Bean
+	@StepScope
+	public JpaItemWriter<PatientEntity> writer() {
+		JpaItemWriter<PatientEntity> writer = new JpaItemWriter<>();
+		writer.setEntityManagerFactory(batchEntityManagerFactory);
+		return writer;
+	}
+	
+	@Bean
+	public Step step(ItemReader<PatientRecord> itemReader, Function<PatientRecord, PatientEntity> processor, JpaItemWriter<PatientEntity> writer)
+			throws Exception {
+		return this.stepBuilderFactory.
+				get(Constants.STEP_NAME).
+				<PatientRecord, PatientEntity>chunk(2)
+				.reader(itemReader)
+				.processor(processor)
+				.writer(writer())
+				.build();
+	}
+	
+	
 	@Bean
 	public Job job(Step step) throws Exception {
 		return this.jobBuilderFactory.get(Constants.JOB_NAME).validator(validator()).start(step).build();
@@ -82,12 +114,12 @@ public class BatchJobConfiguration {
 		};
 	}
 
-	@Bean
-	public Step step(ItemReader<PatientRecord> itemReader, Function<PatientRecord, PatientEntity> processor)
-			throws Exception {
-		return this.stepBuilderFactory.get(Constants.STEP_NAME).<PatientRecord, PatientEntity>chunk(2)
-				.reader(itemReader).processor(processor).writer(writer()).build();
-	}
+//	@Bean
+//	public Step step(ItemReader<PatientRecord> itemReader, Function<PatientRecord, PatientEntity> processor)
+//			throws Exception {
+//		return this.stepBuilderFactory.get(Constants.STEP_NAME).<PatientRecord, PatientEntity>chunk(2)
+//				.reader(itemReader).processor(processor).writer(writer()).build();
+//	}
 
 	@Bean
 	@StepScope
@@ -108,18 +140,18 @@ public class BatchJobConfiguration {
 	 * @StepScope public PassThroughItemProcessor<PatientRecord> processor(){ return
 	 * new PassThroughItemProcessor<>(); }
 	 */
-	@Bean
-	@StepScope
-	public ItemWriter<PatientEntity> writer() {
-		return new ItemWriter<PatientEntity>() {
-			@Override
-			public void write(List<? extends PatientEntity> items) throws Exception {
-				for (PatientEntity patientEntity : items) {
-					System.err.println("Ecriture item : " + patientEntity.toString());
-				}
-			}
-		};
-	}
+//	@Bean
+//	@StepScope
+//	public ItemWriter<PatientEntity> writer() {
+//		return new ItemWriter<PatientEntity>() {
+//			@Override
+//			public void write(List<? extends PatientEntity> items) throws Exception {
+//				for (PatientEntity patientEntity : items) {
+//					System.err.println("Ecriture item : " + patientEntity.toString());
+//				}
+//			}
+//		};
+//	}
 
 	@Bean
 	@StepScope
