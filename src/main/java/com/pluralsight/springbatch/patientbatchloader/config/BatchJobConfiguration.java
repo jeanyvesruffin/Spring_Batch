@@ -35,7 +35,7 @@ public class BatchJobConfiguration {
 	private ApplicationProperties applicationProperties;
 
 	@Bean
-	JobRegistryBeanPostProcessor jobRegistryBea63nPostProcessor(JobRegistry jobRegistry) {
+	JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
 		JobRegistryBeanPostProcessor postProcessor = new JobRegistryBeanPostProcessor();
 		postProcessor.setJobRegistry(jobRegistry);
 		return postProcessor;

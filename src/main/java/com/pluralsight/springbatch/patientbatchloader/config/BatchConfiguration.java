@@ -38,8 +38,7 @@ public class BatchConfiguration implements BatchConfigurer {
 	
 	@Override
 	public JobRepository getJobRepository() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		return this.jobRepository;
 	}
 
 	@Override

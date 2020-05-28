@@ -49,5 +49,5 @@ management:
 # Application specific properties
 # ===================================================================
 application:
-    batch:
-        inputPath: D:/WORK/WorkSpace/SandBox/Spring_batch/Spring_batch\data
+  batch:
+    inputPath: D:/WORK/WorkSpace/SandBox/Spring_batch/Spring_batch/data
