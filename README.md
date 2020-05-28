@@ -695,6 +695,119 @@ public ItemWriter<PatientRecord> writer(){
 }
 ```
 
+Executer l'executio ndu test pour le valider.
+
+## Traitement des data d'entrée (Processing Input Data)
+
+1 . Creation de la class PatientEntity
+
+Simple Pojo ayant les attribut de l'entete du fichier Csv + id. Ajouter les annotation JPA pour la construction des table et colonne. Ajouter un constructeur avec tous les attributs et un sans l'attribut id. Generer getter, setter et un toString.
+
+2 . Implementer un processeur d'element (item processor).
+
+On remplace la methode processor() :
+
+```ruby
+@Bean
+@StepScope
+public Function<PatientRecord, PatientEntity> processor() {
+	return (patientRecord) -> {
+		return new PatientEntity(patientRecord.getSourceId(), 
+				patientRecord.getFirstName(),
+				patientRecord.getMiddleInitial(),
+				patientRecord.getLastName(),
+				patientRecord.getEmailAddress(),
+				patientRecord.getPhoneNumber(),
+				patientRecord.getStreet(),
+				patientRecord.getCity(),
+				patientRecord.getState(),
+				patientRecord.getZip(),
+				LocalDate.parse(patientRecord.getBirthDate(),
+				DateTimeFormatter.ofPattern("M/dd/yyyy")),
+				patientRecord.getSsn());
+	};
+}
+```
+
+On remplace la methode step():
+
+```ruby
+@Bean
+public Step step(ItemReader<PatientRecord> itemReader, Function<PatientRecord, PatientEntity> processor)
+		throws Exception {
+	return this.stepBuilderFactory.get(Constants.STEP_NAME).<PatientRecord, PatientEntity>chunk(2)
+			.reader(itemReader).processor(processor).writer(writer()).build();
+}
+```
+
+On remplace la methode writer():
+
+```ruby
+@Bean
+@StepScope
+public ItemWriter<PatientEntity> writer() {
+	return new ItemWriter<PatientEntity>() {
+		@Override
+		public void write(List<? extends PatientEntity> items) throws Exception {
+			for (PatientEntity patientEntity : items) {
+				System.err.println("Ecriture iotem : " + patientEntity.toString());
+			}
+		}
+	};
+}
+```
+
+3 . Test Procesor
+
+On ajoute l'annotation @TestExecutionListener sur la classe test (BatchJobConfigurationTest)
+
+TestExecutionListener: définit une API d'écoute pour réagir aux événements d'exécution de test publiés par TestContextManageravec lesquels l'écoute est enregistré.
+
+
+
+
+```ruby
+@Autowired
+private Function<PatientRecord, PatientEntity> processor;
+
+@Test
+public void testProcessor() throws Exception {
+    PatientRecord patientRecord = new PatientRecord(
+            "72739d22-3c12-539b-b3c2-13d9d4224d40",
+            "Hettie",
+            "P",
+            "Schmidt",
+            "rodo@uge.li",
+            "(805) 384-3727",
+            "Hutij Terrace",
+            "Kahgepu",
+            "ID",
+            "40239",
+            "6/14/1961",
+            "I",
+            "071-81-2500");
+        PatientEntity entity = processor.apply(patientRecord);
+        assertNotNull(entity);
+        assertEquals("72739d22-3c12-539b-b3c2-13d9d4224d40", entity.getSourceId());
+        assertEquals("Hettie", entity.getFirstName());
+        assertEquals("P", entity.getMiddleInitial());
+        assertEquals("Schmidt", entity.getLastName());
+        assertEquals("rodo@uge.li", entity.getEmailAddress());
+        assertEquals("(805) 384-3727", entity.getPhoneNumber());
+        assertEquals("Hutij Terrace", entity.getStreet());
+        assertEquals("Kahgepu", entity.getCity());
+        assertEquals("ID", entity.getState());
+        assertEquals("40239", entity.getZipCode());
+        assertEquals(14, entity.getBirthDate().getDayOfMonth());
+        assertEquals(6, entity.getBirthDate().getMonthValue());
+        assertEquals(1961, entity.getBirthDate().getYear());
+        assertEquals("071-81-2500", entity.getSocialSecurityNumber());
+    }
+...
+```
+
+Et on test.
+
 
 
 ## Bug fix
