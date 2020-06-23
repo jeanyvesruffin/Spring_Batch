@@ -1,12 +1,32 @@
 # Spring_batch
 
-**Ne jamais oublier** que pendant l'execution d'un projet Spring nous pouvons controler son etats de santé avec localhost:8080/actuator.
+**Ne jamais oublier** que pendant l'execution d'un projet Spring nous pouvons controler son etats de sante avec localhost:8080/actuator.
 
 Avec SOAPUI par exemple.
 
 Voir:
 
 https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-features.html
+
+
+<!-- TOC -->
+
+- [Spring_batch](#spring_batch)
+    - [Ajouter les dependences spring batch](#ajouter-les-dependences-spring-batch)
+    - [Configurer l'application Spring batch](#configurer-lapplication-spring-batch)
+    - [Ajout de l'objet base de donnee a Spring Batch](#ajout-de-lobjet-base-de-donnee-a-spring-batch)
+    - [Configuration du job de Spring Batch](#configuration-du-job-de-spring-batch)
+    - [Configuration d'un step de Spring Batch](#configuration-dun-step-de-spring-batch)
+    - [Creation de test](#creation-de-test)
+    - [Launching a job, Spring batch job execution](#launching-a-job-spring-batch-job-execution)
+    - [Consommation d'un fichier d'entree (consuming an input file)](#consommation-dun-fichier-dentree-consuming-an-input-file)
+    - [Traitement des datas d'entrees (Processing Input Data)](#traitement-des-datas-dentrees-processing-input-data)
+    - [Sortir les resultats du traitement (outputting the results)](#sortir-les-resultats-du-traitement-outputting-the-results)
+    - [Bug fix](#bug-fix)
+
+<!-- /TOC -->
+
+
 
 
 ## Ajouter les dependences spring batch
@@ -20,7 +40,7 @@ Dans le fichier build.gradle ajouter les lignes suivantes:
 
 ## Configurer l'application Spring batch
 
-1 . Ajouter une classe de configuration à votre projet avec les imports nécessaires, ainsi que la declaration de 3 attributs membres à la classe JobRepository, JobExplorer et JobLauncher.
+1 . Ajouter une classe de configuration a votre projet avec les imports necessaires, ainsi que la declaration de 3 attributs membres a la classe JobRepository, JobExplorer et JobLauncher.
 
 ```ruby
 
@@ -33,11 +53,11 @@ public class BatchConfiguration implements BatchConfigurer {
 }
 ```
 
-* JobRepository: Conserve les métadonnées sur le job par lots
+* JobRepository: Conserve les metadonnees sur le job par lots
 
-* JobExplorer: Recupere les métadonnées du repository
+* JobExplorer: Recupere les metadonnees du repository
 
-* JobLauncher: Exécute des jobs avec des paramètres donnés
+* JobLauncher: Execute des jobs avec des parametres donnes
 
 
 2 . Cabler deux attributs membres de la classe PlatformTransactionManager et DataSource
@@ -100,7 +120,7 @@ public void afterPropertiesSet()throws Exception {
 }
 ```
 	
-5 . Ajouter à votre fichier de configuration application.yml
+5 . Ajouter a votre fichier de configuration application.yml
 
 	spring:
 		application:
@@ -113,7 +133,7 @@ public void afterPropertiesSet()throws Exception {
 		batch:
 			inputPath: D:\WORK\WorkSpace\SandBox\Spring_batch\Spring_batch\data
 			
-6 . On ajoute dans le fichier ApplicationProperties les propriétés spécifiques à l'application
+6 . On ajoute dans le fichier ApplicationProperties les proprietes specifiques a l'application
 
 ```ruby
 @ConfigurationProperties(prefix = "application", ignoreUnknownFields = false)
@@ -134,12 +154,12 @@ public class ApplicationProperties {
 }
 ```
 		
-## Ajout de l'objet base de donnée à Spring Batch
+## Ajout de l'objet base de donnee a Spring Batch
 
 ![Batch Term](Documents/batchTerm.bmp)
 
 
-1 . Ajouter la ligne suivante à votre fichier master.xml
+1 . Ajouter la ligne suivante a votre fichier master.xml
 	
 	<include file="config/liquibase/changelog/01012018000000_create_spring_batch_objects.xml" relativeToChangelogFile="false"/>
 	
@@ -308,7 +328,7 @@ public class ApplicationProperties {
 
 3 . Executer votre application avec spring PatientBatchLoaderApp
 
-4 . Controler votre base de donnée à l'adresse url:
+4 . Controler votre base de donnee a l'adresse url:
 
 http://localhost:8080/console
 
@@ -320,10 +340,10 @@ Avant:
 
 Apres:
 
-![Console H2 après](Documents/consoleH2After.bmp)
+![Console H2 apres](Documents/consoleH2After.bmp)
 
 
-Méfiance il y a un point qui traine dans le chemin
+Mefiance il y a un point qui traine dans le chemin
 
 ## Configuration du job de Spring Batch
 
@@ -388,7 +408,7 @@ public class BatchJobConfiguration {
 					}
 				} catch (Exception e) {
 					throw new JobParametersInvalidException(
-							"le paramètre chemin d'accès + patient-batch-loader.filename doit être un emplacement de fichier valide");
+							"le parametre chemin d'accas + patient-batch-loader.filename doit etre un emplacement de fichier valide");
 				}
 			}
 		};
@@ -471,7 +491,7 @@ public class JobResource {
 }
 ```
 
-Tester le lancement du job en executant l'application puis à l'aide de SoapUI envoyer une requete à l'adresse:
+Tester le lancement du job en executant l'application puis a l'aide de SoapUI envoyer une requete a l'adresse:
 
 http://localhost:8080/job/test-unit-testing.csv
 
@@ -479,20 +499,20 @@ Le resultat se trouvera dans la console:
 
 	Hello World!!
 
-## Consommation d'un fichier d'entrée (consuming an input file)
+## Consommation d'un fichier d'entree (consuming an input file)
 
 Rappel serialisation/deserialisation
 
 http://blog.paumard.org/cours/java/chap10-entrees-sorties-serialization.html
 
-Notre fichier d'entrée sera un fichier .csv celui-ci devra etre avoir la structure suivante:
+Notre fichier d'entree sera un fichier .csv celui-ci devra etre avoir la structure suivante:
 
 * Avoir un delimiteur de champs, ici : ",".
 * Avoir une entete, ici le nom des champs de colonne.
 * Avoir les champs/ valeur qui seraient requis et compris par le provider et consumer
 
 
-Exemple entête:
+Exemple entete:
 
 
 ```csv
@@ -504,7 +524,7 @@ Suivi des datas attendues par le providers et consumer:
 72739d22-3c12-539b-b3c2-13d9d4224d40,Hettie,P,Schmidt,rodo@uge.li,(805) 384-3727,Hutij Terrace,Kahgepu,ID,40239,6/14/1961,I,071-81-2500
 ```
 
-1 . Creation de la classe PatientRecord qui sera serialisable (implements Serializable) avec des attributs representant l'entete du fichier csv que l'on typera en String. Puis génération getters/setters et constructeurs sans et avec constructeur + Override toString().
+1 . Creation de la classe PatientRecord qui sera serialisable (implements Serializable) avec des attributs representant l'entete du fichier csv que l'on typera en String. Puis generation getters/setters et constructeurs sans et avec constructeur + Override toString().
 
 
 Exemple:
@@ -547,14 +567,14 @@ public class PatientRecord  implements Serializable{
 
 ```
 
-2 . Mise à jour de notre step pour regroupement
+2 . Mise a jour de notre step pour regroupement
 
 Lors de l'execution de notre job notre step (BatchJobConfiguration.java) nous retourne uniquement "Hello world" a l'aide de talkLet.
 
 Nous allons remplacer le talklet par un traitement par lot (chunk-oriented processing), utilisant un ItemReader en parametre du step
 
-Les implémentations ItemReader doivent être avec état et seront appelées plusieurs fois pour chaque lot, chaque appel read() renvoyant une valeur différente et retournera finalement null lorsque toutes les données d'entrée seront épuisées.
-Les implémentations n'ont pas besoin d'être thread-safe et les clients ItemReader doivent savoir que c'est le cas.
+Les implementations ItemReader doivent etre avec etat et seront appelees plusieurs fois pour chaque lot, chaque appel read() renvoyant une valeur differente et retournera finalement null lorsque toutes les donnees d'entree seront epuisees.
+Les implementations n'ont pas besoin d'etre thread-safe et les clients ItemReader doivent savoir que c'est le cas.
 
 
 Remplacer la methode step par :
@@ -572,14 +592,14 @@ public Step step(ItemReader<PatientRecord> itemReader) throws Exception {
 }
 ```
 
-3 . Implementer générateur de lecteur d'élément de fichier plat (FlatFile ItemReader Builder) nous allons :
+3 . Implementer generateur de lecteur d'element de fichier plat (FlatFile ItemReader Builder) nous allons :
 
 * Ouvrir le fichier
 * Sauter la  premier ligne
 * lire chaque ligne contenu
 * cartogrraphier chaque data pour la classe PatientRecord
 
-La classe Spring FlatFileItemReader realise cela pour nous à l'aide de LinMapper.
+La classe Spring FlatFileItemReader realise cela pour nous a l'aide de LinMapper.
 
 Exemple FlatFileItemReader :
 
@@ -618,7 +638,7 @@ public LineMapper<PatientRecord> lineMapper() {
 
 PassThroughItemProcessor:
 
-transmet simplement son argument à l'appelant. Utile par défaut lorsque le lecteur et le rédacteur d'un processus métier traitent des éléments du même type et qu'aucune transformation n'est requise
+transmet simplement son argument a l'appelant. Utile par defaut lorsque le lecteur et le redacteur d'un processus metier traitent des elements du meme type et qu'aucune transformation n'est requise
 
 Dans BatchJobConfiguration:
 
@@ -697,7 +717,7 @@ public ItemWriter<PatientRecord> writer(){
 
 Executer l'executio ndu test pour le valider.
 
-## Traitement des datas d'entrées (Processing Input Data)
+## Traitement des datas d'entrees (Processing Input Data)
 
 1 . Creation de la class PatientEntity
 
@@ -761,7 +781,7 @@ public ItemWriter<PatientEntity> writer() {
 
 On ajoute l'annotation @TestExecutionListener sur la classe test (BatchJobConfigurationTest)
 
-TestExecutionListener: définit une API d'écoute pour réagir aux événements d'exécution de test publiés par TestContextManageravec lesquels l'écoute est enregistré.
+TestExecutionListener: definit une API d'ecoute pour reagir aux evenements d'execution de test publies par TestContextManageravec lesquels l'ecoute est enregistre.
 
 
 
@@ -810,7 +830,7 @@ On test, puis on excecute.
 
 ## Sortir les resultats du traitement (outputting the results)
 
-1 . Nous allons pour cela recreer un dernier fichier de log represntatif de la structure de base de donnée de l'objet patient
+1 . Nous allons pour cela recreer un dernier fichier de log represntatif de la structure de base de donnee de l'objet patient
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -870,7 +890,7 @@ On test, puis on excecute.
 </databaseChangeLog>
 ```
 
-2 . Puis on l'ajoute à notre fichier master.xml
+2 . Puis on l'ajoute a notre fichier master.xml
 
 ```xml
 <include file="config/liquibase/changelog/01022018000000_create_patient_objects.xml" relativeToChangelogFile="false"/>
@@ -911,7 +931,7 @@ public Step step(ItemReader<PatientRecord> itemReader, Function<PatientRecord, P
 	
 4 . Creation du test
 
-Pour savoir si l'ecriture c'est bien effectué nous allons commencer par creer une interface qui extends JpaRepository, puis une classe implementant celle-ci dans lequel sera ecrit les resultats. (package repository).
+Pour savoir si l'ecriture c'est bien effectue nous allons commencer par creer une interface qui extends JpaRepository, puis une classe implementant celle-ci dans lequel sera ecrit les resultats. (package repository).
 
 Interface PatientRepository:
 
@@ -957,7 +977,7 @@ public void testWriter() throws Exception {
 }
 ```
 
-7 . Ajouter les annotation suivante sur l'entete de la class test afin de ne pas avoir d'erreur, car nous essayons d'executer une ecriture à l'exterieur de la transaction
+7 . Ajouter les annotation suivante sur l'entete de la class test afin de ne pas avoir d'erreur, car nous essayons d'executer une ecriture a l'exterieur de la transaction
 
 ```ruby
 @TestExecutionListeners({ DependencyInjectionTestExecutionListener.class, StepScopeTestExecutionListener.class, TransactionalTestExecutionListener.class})
